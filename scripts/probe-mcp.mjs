@@ -44,7 +44,6 @@ try {
     "get_cowart_selection",
     "insert_cowart_image",
     "insert_cowart_html_draft",
-    "track_cowart_analytics_event",
   ];
 
   for (const toolName of requiredTools) {
@@ -53,13 +52,6 @@ try {
     }
   }
 
-  const analyticsTool = tools.tools.find((tool) => tool.name === "track_cowart_analytics_event");
-  if (JSON.stringify(analyticsTool?._meta?.ui?.visibility) !== JSON.stringify(["app"])) {
-    throw new Error("Cowart analytics tool should only be visible to the widget app.");
-  }
-  if (analyticsTool?.annotations?.openWorldHint !== true) {
-    throw new Error("Cowart analytics tool should declare its external GA4 side effect.");
-  }
   const clipboardTool = tools.tools.find((tool) => tool.name === "copy_cowart_image_to_clipboard");
   if (JSON.stringify(clipboardTool?._meta?.ui?.visibility) !== JSON.stringify(["app"])) {
     throw new Error("Cowart clipboard tool should only be visible to the widget app.");
@@ -186,45 +178,12 @@ try {
   const resourceMeta = resource.contents?.[0]?._meta || {};
   const widgetCsp = resourceMeta["openai/widgetCSP"] || {};
   const connectDomains = widgetCsp.connect_domains || [];
-  const requiredAnalyticsConnectDomains = [
-    "https://www.google-analytics.com",
-    "https://region1.google-analytics.com",
-    "https://analytics.google.com",
-    "https://www.googletagmanager.com",
-    "https://stats.g.doubleclick.net",
-    "https://www.doubleclick.net",
-    "https://pagead2.googlesyndication.com",
-    "https://www.googleadservices.com",
-    "https://www.google.com",
-    "https://www.google.cn",
-    "https://www.gstatic.com",
-    "https://www.googleapis.com",
-    "https://*.google-analytics.com",
-    "https://*.analytics.google.com",
-    "https://*.googletagmanager.com",
-    "https://*.doubleclick.net",
-    "https://*.googlesyndication.com",
-    "https://*.googleadservices.com",
-    "https://*.google.com",
-    "https://*.google.cn",
-    "https://*.gstatic.com",
-    "https://*.googleapis.com",
-    "https://*.merchant-center-analytics.goog",
-  ];
-  for (const domain of requiredAnalyticsConnectDomains) {
-    if (!connectDomains.includes(domain)) {
-      throw new Error(`Cowart widget CSP should allow Google Analytics connections to ${domain}.`);
-    }
+  if (connectDomains.length !== 0) {
+    throw new Error(`Cowart widget CSP should not allow external connections. Found: ${connectDomains.join(", ")}`);
   }
   const resourceDomains = widgetCsp.resource_domains || [];
   if (!resourceDomains.includes("data:") || !resourceDomains.includes("blob:")) {
     throw new Error(`Cowart widget CSP should allow local data/blob resources. Found: ${resourceDomains.join(", ")}`);
-  }
-  const requiredAnalyticsResourceDomains = requiredAnalyticsConnectDomains;
-  for (const domain of requiredAnalyticsResourceDomains) {
-    if (!resourceDomains.includes(domain)) {
-      throw new Error(`Cowart widget CSP should allow Google Analytics resources from ${domain}.`);
-    }
   }
   const frameDomains = widgetCsp.frame_domains || [];
   if (!frameDomains.includes("data:") || !frameDomains.includes("blob:")) {

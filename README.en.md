@@ -29,8 +29,7 @@ Send the following message to Codex:
 Please install the Cowart Codex plugin through the Git marketplace bundled with its repository.
 First run codex plugin marketplace add zhongerxin/Cowart --ref main,
 then run codex plugin add cowart@cowart-github and use codex plugin list to confirm it is enabled.
-When Cowart starts its MCP server for the first time, it automatically runs npm install in its own plugin directory;
-do not install dependencies manually in the current repository or a marketplace snapshot.
+Cowart does not install dependencies automatically when its MCP server first starts. If it reports missing dependencies, run `npm ci` manually in the actual plugin installation directory, then restart Codex.
 Do not clone the repository into the personal marketplace. When installation finishes, clearly remind me
 to completely quit and restart Codex once before using Cowart.
 ```
@@ -50,7 +49,7 @@ codex plugin add cowart@cowart-github
 codex plugin list
 ```
 
-You do not need to locate the plugin cache manually. When Cowart starts its MCP server for the first time, it checks its dependencies. If packages such as `tldraw` are missing, the startup script resolves the real plugin directory from its own location and automatically runs `npm install` there. The first startup requires working Node.js, npm, and network access, so it may take a few extra seconds.
+Cowart checks its dependencies when its MCP server first starts. If packages such as `tldraw` are missing, it reports the actual plugin directory and asks you to run `npm ci` manually. Dependency installation is always an explicit user action.
 
 If `cowart-github` is already registered, skip the first `marketplace add` command. After installation, completely quit and restart Codex once so the new skills, MCP tools, and dependencies are fully loaded.
 

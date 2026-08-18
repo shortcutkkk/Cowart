@@ -33,11 +33,6 @@ import {
 } from "./lib/canvas-storage.mjs";
 import { pluginPath } from "./lib/plugin-root.mjs";
 import { inlineWidget, registerWidgetResource } from "./lib/widget-resource.mjs";
-import {
-  COWART_GA4_EVENT_NAMES,
-  sendCowartGa4Event,
-} from "./lib/ga4-analytics.mjs";
-
 const TOOL_RENDER_WIDGET = "render_cowart_canvas_widget";
 const TOOL_GET_CANVAS_STATE = "get_cowart_canvas_state";
 const TOOL_SAVE_CANVAS_STATE = "save_cowart_canvas_state";
@@ -50,7 +45,6 @@ const TOOL_SAVE_REFERENCE_IMAGE = "save_cowart_reference_image";
 const TOOL_READ_PAGE_ASSET = "read_cowart_page_asset";
 const TOOL_DOWNLOAD_FILE = "download_cowart_file";
 const TOOL_COPY_IMAGE_TO_CLIPBOARD = "copy_cowart_image_to_clipboard";
-const TOOL_TRACK_ANALYTICS = "track_cowart_analytics_event";
 
 const execFileAsync = promisify(execFile);
 
@@ -58,49 +52,9 @@ const PAGE_ID_PREFIX = "page:";
 const COWART_WIDGET_URI = "ui://widget/cowart/canvas.html";
 const COWART_HTML_DRAFT_URL_ORIGIN = "http://cowart.local";
 const DEFAULT_DISPLAY_MODE = "fullscreen";
-const COWART_GOOGLE_DOMAINS = [
-  "https://www.google-analytics.com",
-  "https://region1.google-analytics.com",
-  "https://analytics.google.com",
-  "https://www.googletagmanager.com",
-  "https://stats.g.doubleclick.net",
-  "https://www.doubleclick.net",
-  "https://pagead2.googlesyndication.com",
-  "https://www.googleadservices.com",
-  "https://www.google.com",
-  "https://www.google.cn",
-  "https://www.gstatic.com",
-  "https://www.googleapis.com",
-  "https://*.google-analytics.com",
-  "https://*.analytics.google.com",
-  "https://*.googletagmanager.com",
-  "https://*.doubleclick.net",
-  "https://*.googlesyndication.com",
-  "https://*.googleadservices.com",
-  "https://*.google.com",
-  "https://*.google.cn",
-  "https://*.gstatic.com",
-  "https://*.googleapis.com",
-  "https://*.merchant-center-analytics.goog",
-];
-const COWART_CONNECT_DOMAINS = [...COWART_GOOGLE_DOMAINS];
-const COWART_RESOURCE_DOMAINS = [
-  "data:",
-  "blob:",
-  ...COWART_GOOGLE_DOMAINS,
-];
-const COWART_FRAME_DOMAINS = [
-  "data:",
-  "blob:",
-  "https://www.googletagmanager.com",
-  "https://www.doubleclick.net",
-  "https://www.google.com",
-  "https://www.google.cn",
-  "https://*.googletagmanager.com",
-  "https://*.doubleclick.net",
-  "https://*.google.com",
-  "https://*.google.cn",
-];
+const COWART_CONNECT_DOMAINS = [];
+const COWART_RESOURCE_DOMAINS = ["data:", "blob:"];
+const COWART_FRAME_DOMAINS = ["data:", "blob:"];
 
 const projectArgsSchema = {
   projectDir: z.string().trim().optional(),
@@ -127,7 +81,6 @@ const server = new McpServer(
 registerCowartWidget(server);
 registerCowartStateTools(server);
 registerCowartImageTools(server);
-registerCowartAnalyticsTools(server);
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
@@ -1108,76 +1061,6 @@ function registerCowartWidget(mcpServer) {
           },
         },
       };
-    },
-  );
-}
-
-function registerCowartAnalyticsTools(mcpServer) {
-  registerAppTool(
-    mcpServer,
-    TOOL_TRACK_ANALYTICS,
-    {
-      title: "Track Cowart analytics event",
-      description:
-        "Use this when the Cowart widget records an anonymous product-usage event in Google Analytics.",
-      inputSchema: {
-        clientId: z.string().trim().min(1).max(128),
-        eventName: z.enum(COWART_GA4_EVENT_NAMES),
-        appVersion: z.string().trim().min(1).max(32),
-        parameters: z.object({
-          annotation_type: z.enum(["arrow"]).optional(),
-          ai_type: z.enum(["image", "html", "slides"]).optional(),
-          has_reference: z.enum(["yes", "no"]).optional(),
-          page_count: z.number().int().min(1).max(100).optional(),
-          prompt_type: z.enum([
-            "ai_image",
-            "ai_html",
-            "ai_slides",
-            "annotation_edit",
-            "annotation_html",
-            "slides_annotation_edit",
-            "html_annotation_edit",
-            "html_annotation_image",
-            "other",
-          ]).optional(),
-        }).optional(),
-      },
-      annotations: {
-        readOnlyHint: false,
-        destructiveHint: false,
-        idempotentHint: false,
-        openWorldHint: true,
-      },
-      _meta: {
-        ui: {
-          visibility: ["app"],
-        },
-        "openai/widgetAccessible": true,
-      },
-    },
-    async ({ clientId, eventName, appVersion, parameters }) => {
-      try {
-        const result = await sendCowartGa4Event({
-          clientId,
-          eventName,
-          appVersion,
-          parameters,
-        });
-        return {
-          content: [],
-          structuredContent: result,
-        };
-      } catch (error) {
-        console.warn(`Cowart analytics delivery failed: ${error instanceof Error ? error.message : String(error)}`);
-        return {
-          content: [],
-          structuredContent: {
-            configured: true,
-            delivered: false,
-            status: null,
-          },
-        };
-      }
     },
   );
 }
